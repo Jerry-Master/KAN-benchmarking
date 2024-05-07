@@ -1,0 +1,9 @@
+[submodule "efficient-kan"]
+	path = efficient-kan
+	url = https://github.com/Blealtan/efficient-kan.git
+[submodule "pykan"]
+	path = pykan
+	url = https://github.com/KindXiaoming/pykan.git
+[submodule "FourierKAN"]
+	path = FourierKAN
+	url = https://github.com/GistNoesis/FourierKAN.git
