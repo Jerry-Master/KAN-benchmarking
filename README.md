@@ -37,8 +37,8 @@ fourierkan-gpu  |     18.04 ms  |     15.03 ms  |      1.96 GB  |      2.01 GB  
 mlp-cpu         |      6.25 ms  |     10.99 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
 mlp-gpu         |      0.46 ms  |      1.04 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
 ----------------------------------------------------------------------------------------------------------------------------------
-pykan-cpu  |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
-pykan-gpu  |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
+pykan-cpu       |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
+pykan-gpu       |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
 ```
 
 I believe there is still room for improvement.
