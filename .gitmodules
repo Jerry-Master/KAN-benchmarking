@@ -7,3 +7,6 @@
 [submodule "FourierKAN"]
 	path = FourierKAN
 	url = https://github.com/GistNoesis/FourierKAN.git
+[submodule "FusedFourierKAN"]
+	path = FusedFourierKAN
+	url = https://github.com/GistNoesis/FusedFourierKAN.git

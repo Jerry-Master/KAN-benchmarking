@@ -187,6 +187,29 @@ def main():
         model.to('cuda')
         res['mlp-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['mlp-gpu']['params'], res['mlp-gpu']['train_params'] = count_params(model)
+    if args.method == 'fusedfourierkan' or args.method == 'all' or args.method == 'comparefused':
+        # Installation of this layer is more cumbersome
+        # Therefore the imports are here so that they are not needed for the other methods
+        from FusedFourierKAN.FusedFourierKANLayer import FusedFourierKANLayer
+        class FusedFourierKAN(nn.Module):
+            def __init__(self, layers: Tuple[int, int, int], gridsize: int, device: str):
+                super().__init__()
+                torch.manual_seed(42)
+                self.layer1 = FusedFourierKANLayer(layers[0], layers[1], gridsize=gridsize).to(device)
+                self.layer2 = FusedFourierKANLayer(layers[1], layers[2], gridsize=gridsize).to(device)
+
+            def forward(self, x: torch.Tensor):
+                x = self.layer1(x)
+                x = self.layer2(x)
+                return x
+        model = FusedFourierKAN(layers=[args.inp_size, args.hid_size, 1], gridsize=5, device='cpu')
+        if not args.just_cuda:
+            res['fusedfourierkan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['fusedfourierkan-cpu']['params'], res['fusedfourierkan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['fusedfourierkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['fusedfourierkan-gpu']['params'], res['fusedfourierkan-gpu']['train_params'] = count_params(model)
+    
 
     save_results(res, args.output_path)
 

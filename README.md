@@ -86,3 +86,49 @@ pip install -e .
 ```
 
 To check everything is installed correctly run `python benchmark.py --help` and see there are no exception thrown.
+
+### CUDA kernels
+
+The code has the option to benchmark the Fused Fourier KAN, but you need to compile and install it first. This section provides instructions for Windows and Linux. 
+
+First of all, you need to have installed cmake and the CUDA toolkit. Try to be consistent. If you use pytorch with CUDA 12.x, then the CUDA toolkit you install should also be 12.x. Check your installed version with `nvcc --version`. 
+
+For Linux users, you can link against the installed torch package in your virtual environment:
+
+```
+cd FusedFourierKAN/build
+cmake -DCMAKE_PREFIX_PATH=".venv/lib/python3.10/site-packages/torch" ..
+cmake --build .
+```
+
+Later on, if you encounter this error
+
+```
+undefined symbol: _ZN3c108ListType3getERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEENS_4Type24SingletonOrSharedTypePtrIS9_EE
+```
+
+That is because the torch package distributed through pypi was compiled with pre-CXX11 ABI. To solve it you need to compile your kernels for that ABI too. For that you will have to change the configuration:
+
+```
+cmake -DCMAKE_PREFIX_PATH=".venv/lib/python3.10/site-packages/torch" -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=0" ..
+```
+
+If when compiling you still see that it is not using that flag, look into `CMakeFiles/fusedFourierKAN.dir/flags.make` and make sure that the `-D_GLIBCXX_USE_CXX11_ABI` has value 0 and not 1.
+
+For Windows, download the C++ version of pytorch. Choose the Release version and extract the zip wherever you want and get the path of the folder `libtorch`. With that you can configure the project:
+
+```
+cd FusedFourierKAN/build
+cmake -DCMAKE_PREFIX_PATH="/absolute/path/to/libtorch" ..
+```
+
+Once you have configured the project, you can try with `cmake --build . --config Release`. If that does not work, the configuration should have created some Visual Studio solutions. Open those and compile the project there in Release mode. If you get some error about  '/RTC1' and '/O2' not being compatible that is because you are not compiling in Release mode. Once finished, look for the location of the DLL. It should be on `FusedFourierKAN/build/Release/fusedFourierKAN.dll`. Go to `FusedFourierKAN/FusedFourierKAN/ffKANFunction.py` and modify line 10 to be `pluginpath = os.path.join(parent, "../build/Release/fusedFourierKAN.dll")`. 
+
+Once you have the dynamic library compiled, either in Linux or Windows, the last step is to install the python library:
+
+```
+cd FusedFourierKAN
+pip install -e .
+```
+
+The DLL for the Visual Studio and cmake versions of Windows are in the releases section of the repo. The .so file compiled in WSL 2 Ubuntu 22.04 is also there. In case you are having trouble compiling, you could just download those and put them in the corresponding folders mentioned below.
