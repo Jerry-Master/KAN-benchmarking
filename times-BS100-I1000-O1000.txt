@@ -1,0 +1,8 @@
+                |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
+----------------------------------------------------------------------------------------------------------------------------------
+effkan-cpu      |     33.56 ms  |     43.40 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+effkan-gpu      |      3.28 ms  |      2.89 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
+fourierkan-cpu  |    708.44 ms  |    913.20 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fourierkan-gpu  |     18.04 ms  |     15.03 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
+mlp-cpu         |      6.25 ms  |     10.99 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
+mlp-gpu         |      0.46 ms  |      1.04 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
