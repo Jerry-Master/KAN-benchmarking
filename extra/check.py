@@ -4,7 +4,7 @@ from torch import nn
 import numpy as np
 from kan import create_dataset
 from fftKAN import NaiveFourierKANLayer
-from FKAN import FKANLayer
+from cuFKAN import FKANLayer
 
 
 class FourierKAN(nn.Module):

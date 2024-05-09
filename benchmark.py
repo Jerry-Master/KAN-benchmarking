@@ -138,7 +138,7 @@ def count_params(model: nn.Module) -> Tuple[int, int]:
 def _create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-path', default='times.txt', type=str)
-    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'mlp', 'all', 'fusedfourierkan', 'chebykan'], type=str)
+    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'fusedfourierkan', 'chebykan', 'cufkan', 'mlp', 'all'], type=str)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--inp-size', type=int, default=2, help='The dimension of the input variables.')
     parser.add_argument('--hid-size', type=int, default=50, help='The dimension of the hidden layer.')
@@ -218,6 +218,32 @@ def main():
         except Exception as e:
             print(e)
             print('FusedFourierKAN is not properly installed.')
+    if args.method == 'cufkan' or args.method == 'all':
+        # Installation of this layer is more cumbersome
+        # Therefore the imports are here so that they are not needed for the other methods
+        try:
+            from cuFKAN.FKAN import FKANLayer
+            class FKAN(nn.Module):
+                def __init__(self, layers: Tuple[int, int, int], gridsize: int, device: str):
+                    super().__init__()
+                    torch.manual_seed(42)
+                    self.layer1 = FKANLayer(layers[0], layers[1], gridsize=gridsize).to(device)
+                    self.layer2 = FKANLayer(layers[1], layers[2], gridsize=gridsize).to(device)
+
+                def forward(self, x: torch.Tensor):
+                    x = self.layer1(x)
+                    x = self.layer2(x)
+                    return x
+            model = FKAN(layers=[args.inp_size, args.hid_size, 1], gridsize=5, device='cpu')
+            if not args.just_cuda:
+                res['cufkan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+                res['cufkan-cpu']['params'], res['cufkan-cpu']['train_params'] = count_params(model)
+            # model.to('cuda')
+            # res['cufkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+            # res['cufkan-gpu']['params'], res['cufkan-gpu']['train_params'] = count_params(model)
+        except Exception as e:
+            print(e)
+            print('cuFKAN is not properly installed.')
     if args.method == 'chebykan' or args.method == 'all':
         model = ChebyKAN(layers=[args.inp_size, args.hid_size, 1], device='cpu')
         if not args.just_cuda:

@@ -1,0 +1,33 @@
+[build-system]
+requires = [
+    "setuptools",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cuFKAN"
+authors = [
+    {name = "Jerry-Master", email = "joseperez2000@hotmail.es"},
+]
+description = "Fourier KAN operations in CPU and GPU."
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: GPU :: NVIDIA CUDA :: 12",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3.10",
+    "Typing :: Stubs Only",
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = { attr = "cuFKAN.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["cuFKAN"]

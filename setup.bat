@@ -32,7 +32,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Install other required packages
-python -m pip install matplotlib==3.6.2 numpy==1.24.4 scikit_learn==1.1.3 setuptools==65.5.0 sympy==1.11.1 tqdm==4.66.2
+python -m pip install matplotlib==3.6.2 numpy==1.24.4 scikit_learn==1.1.3 setuptools==65.5.0 sympy==1.11.1 tqdm==4.66.2 ninja
 IF ERRORLEVEL 1 (
     echo Error installing additional packages
     pause
@@ -67,6 +67,38 @@ REM Install efficient-kan in editable mode
 python -m pip install -e .
 IF ERRORLEVEL 1 (
     echo Error installing efficient-kan
+    pause
+    exit /b 1
+)
+
+REM Change directory to cuFKAN kernel
+cd ..\extra\kernel
+IF ERRORLEVEL 1 (
+    echo Error changing directory to cuFKAN kernel
+    pause
+    exit /b 1
+)
+
+REM Install cuFKAN kernel
+python -m pip install .
+IF ERRORLEVEL 1 (
+    echo Error installing cuFKAN kernel
+    pause
+    exit /b 1
+)
+
+REM Change directory up
+cd ..
+IF ERRORLEVEL 1 (
+    echo Error changing directory up
+    pause
+    exit /b 1
+)
+
+REM Install cuFKAN
+python -m pip install .
+IF ERRORLEVEL 1 (
+    echo Error installing cuFKAN
     pause
     exit /b 1
 )

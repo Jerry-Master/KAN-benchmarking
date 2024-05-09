@@ -25,7 +25,7 @@ pip install torch || {
 }
 
 # Install other required packages
-pip install matplotlib==3.6.2 numpy==1.24.4 scikit_learn==1.1.3 setuptools==65.5.0 sympy==1.11.1 tqdm==4.66.2 || {
+pip install matplotlib==3.6.2 numpy==1.24.4 scikit_learn==1.1.3 setuptools==65.5.0 sympy==1.11.1 tqdm==4.66.2 ninja || {
     echo "Error installing additional packages"
     exit 1
 }
@@ -53,6 +53,30 @@ pip install -e. || {
     echo "Error installing efficient-kan"
     exit 1
 }
+
+# Change directory to cuFKAN kernel
+cd ../extra/kernel || (
+    echo "Error changing directory to cuFKAN kernel"
+    exit 1
+)
+
+# Install cuFKAN kernel
+pip install . || (
+    echo "Error installing cuFKAN kernel"
+    exit 1
+)
+
+# Change directory up
+cd .. || (
+    echo "Error changing directory up"
+    exit 1
+)
+
+# Install cuFKAN
+pip install . || (
+    echo "Error installing cuFKAN"
+    exit 1
+)
 
 # Change directory up
 cd .. || {

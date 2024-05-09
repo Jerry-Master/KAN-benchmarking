@@ -136,3 +136,21 @@ pip install -e .
 ```
 
 The DLL for the Visual Studio and cmake versions of Windows are in the releases section of the repo. The .so file compiled in WSL 2 Ubuntu 22.04 is also there. In case you are having trouble compiling, you could just download those and put them in the corresponding folders mentioned below.
+
+#### Extra
+
+The Fourier KAN kernel is reimplemented in the `extra` folder. The installation is included in the setup files. If you want to do it manually you have to first install the kernel:
+
+```
+cd extra/kernel
+pip install .
+```
+
+And then install the python layer:
+
+```
+cd extra/
+pip install .
+```
+
+You should have a working nvcc command and torch already installed in the environment.
