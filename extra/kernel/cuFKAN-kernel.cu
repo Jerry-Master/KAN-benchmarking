@@ -14,31 +14,40 @@ __global__ void cufkan_forward_kernel(
     const int outputdim = output.size(1);
     const int gridsize = fouriercoeffs.size(3);
 
-    for (int i = blockIdx.x; i < bs ; i += gridDim.x)
-        for (int j = 0; j < inputdim; j++)
+    int j = threadIdx.x + blockIdx.x * blockDim.x;
+    int b = threadIdx.y + blockIdx.y * blockDim.y;
+    if (b < bs && j < outputdim) 
+        for (int i = 0; i < inputdim; i++)
         {
-            float xx =  input[i][j];
+            float xx =  input[b][i];
             float c0 = cosf(xx); 
             float s0 = sinf(xx);
-            for (int l = threadIdx.x; l < outputdim; l += blockDim.x)
+            float cos_partial = 1.0f;
+            float sin_partial = 0.0f;
+            for (int k = 1; k < gridsize + 1; k++)
             {
-                float ckm = 1.0f;
-                float skm = 0.0f;
-                for (int k = 1; k < gridsize + 1; k++)
-                {
-                    float c = ckm * c0 - skm * s0;
-                    float s = skm * c0 + ckm * s0;
-                    ckm = c;
-                    skm = s;
-                    output[i][l] += fouriercoeffs[0][j][l][k - 1] * c;
-                    output[i][l] += fouriercoeffs[1][j][l][k - 1] * s;
-                }
+                float cos_term = cos_partial * c0 - sin_partial * s0;
+                float sin_term = sin_partial * c0 + cos_partial * s0;
+                cos_partial = cos_term;
+                sin_partial = sin_term;
+                output[b][j] += fouriercoeffs[0][i][j][k - 1] * cos_term;
+                output[b][j] += fouriercoeffs[1][i][j][k - 1] * sin_term;
             }
         }
 
-    for (int i = blockIdx.x; i < bs; i += gridDim.x)
-        for (int l = threadIdx.x; l < outputdim; l += blockDim.x)
-            output[i][l] += bias[l];
+    
+}
+
+template <typename scalar_t>
+__global__ void cufkan_forward_kernel_bias(
+        const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias,
+        torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> output) {
+    const int bs = output.size(0);
+    const int outputdim = output.size(1);
+    int j = threadIdx.x + blockIdx.x * blockDim.x;
+    int b = threadIdx.y + blockIdx.y * blockDim.y;
+    if (b < bs && j < outputdim)
+        output[b][j] += bias[j];
 }
 
 torch::Tensor fkan_cuda_forward(
@@ -52,13 +61,19 @@ torch::Tensor fkan_cuda_forward(
         .device(input.device().type(), input.device().index());
     torch::Tensor output = torch::zeros({batch_size, fouriercoeffs.size(2)}, options);
 
-    const int n_threads = 32;
-    const dim3 n_blocks(min(batch_size, 1024));
+    const dim3 n_threads(32, 32);
+    const dim3 n_blocks((output.size(1) + n_threads.x - 1) / n_threads.x, (output.size(0) + n_threads.y - 1) / n_threads.y);
 
     AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_forward_cuda", ([&] {
         cufkan_forward_kernel<scalar_t><<<n_blocks, n_threads>>>(
             input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
             fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+            bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
+            output.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>());
+    }));
+
+    AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_forward_cuda_bias", ([&] {
+        cufkan_forward_kernel_bias<scalar_t><<<n_blocks, n_threads>>>(
             bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
             output.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>());
     }));
@@ -94,32 +109,29 @@ __global__ void cufkan_backward_kernel_coeff(
     const int outputdim = grad_o.size(1);
     const int gridsize = fouriercoeffs.size(3);
 
-    int j = threadIdx.x + blockDim.x * blockIdx.x;
-    int l = threadIdx.y + blockDim.y * blockIdx.y;
-    if (j < inputdim && l < outputdim)
+    int i = threadIdx.x + blockDim.x * blockIdx.x;
+    int j = threadIdx.y + blockDim.y * blockIdx.y;
+    if (i < inputdim && j < outputdim)
     {
-        for( int i = 0 ; i < bs ; i++)
+        for( int b = 0 ; b < bs ; b++)
         {
-            float xx = input[i][j];
+            float xx = input[b][i];
             float c0 = cosf(xx); 
             float s0 = sinf(xx);
-            float ckm = 1.0f;
-            float skm = 0.0f;
+            float cos_partial = 1.0f;
+            float sin_partial = 0.0f;
             for (int k = 1; k < gridsize + 1; k++)
             {
-                float xxb = 0.0;
-                float c = ckm * c0 - skm * s0;
-                float s = skm * c0 + ckm * s0;
-                ckm = c;
-                skm = s;
-                float sb;
-                float cb;
-                d_fouriercoeffs[1][j][l][k - 1] += s * grad_o[i][l];
-                d_fouriercoeffs[0][j][l][k - 1] += c * grad_o[i][l];
-                sb = fouriercoeffs[1][j][l][k-1] * grad_o[i][l];
-                cb = fouriercoeffs[0][j][l][k-1] * grad_o[i][l];
-                xxb = k*c*sb - k*s*cb;
-                d_input[i][j] += xxb;
+                float cos_term = cos_partial * c0 - sin_partial * s0;
+                float sin_term = sin_partial * c0 + cos_partial * s0;
+                cos_partial = cos_term;
+                sin_partial = sin_term;
+                float sg = sin_term * grad_o[b][j];
+                float cg = cos_term * grad_o[b][j];
+                d_fouriercoeffs[1][i][j][k - 1] += sg;
+                d_fouriercoeffs[0][i][j][k - 1] += cg;
+                d_input[b][i] += k * cg * fouriercoeffs[1][i][j][k-1]
+                                 - k * sg * fouriercoeffs[0][i][j][k-1];
             }
         }
     }

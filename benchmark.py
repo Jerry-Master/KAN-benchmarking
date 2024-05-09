@@ -238,9 +238,9 @@ def main():
             if not args.just_cuda:
                 res['cufkan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
                 res['cufkan-cpu']['params'], res['cufkan-cpu']['train_params'] = count_params(model)
-            # model.to('cuda')
-            # res['cufkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
-            # res['cufkan-gpu']['params'], res['cufkan-gpu']['train_params'] = count_params(model)
+            model.to('cuda')
+            res['cufkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+            res['cufkan-gpu']['params'], res['cufkan-gpu']['train_params'] = count_params(model)
         except Exception as e:
             print(e)
             print('cuFKAN is not properly installed.')
