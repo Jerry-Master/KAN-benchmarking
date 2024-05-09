@@ -9,7 +9,40 @@ __global__ void cufkan_forward_kernel(
         const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeffs,
         const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias,
         torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> output) {
-    
+    const int inputdim = input.size(1);
+    const int bs = input.size(0);
+    const int outputdim = output.size(1);
+    const int gridsize = fouriercoeffs.size(3);
+
+    for (int i = blockIdx.x; i < bs ; i += gridDim.x)
+        for (int j = 0; j < inputdim; j++)
+        {
+            float xx =  input[i][j];
+            float c0 = cosf(xx); 
+            float s0 = sinf(xx);
+            for (int l = threadIdx.x; l < outputdim; l += blockDim.x)
+            {
+                float ckm = 1.0f;
+                float skm = 0.0f;
+                for (int k = 1; k < gridsize + 1; k++)
+                {
+                    //For better performance We use trig formula to compute ck,sk from ck-1, sk-1, cos(xx),sin(xx)
+                    //But this form is better to obtain the bacwkard pass
+                    //float c = cos(k*xx); 
+                    //float s = sin(k*xx);
+                    float c = ckm * c0 - skm * s0;
+                    float s = skm * c0 + ckm * s0;
+                    ckm = c;
+                    skm = s;
+                    output[i][l] += fouriercoeffs[0][j][l][k - 1] * c;
+                    output[i][l] += fouriercoeffs[1][j][l][k - 1] * s;
+                }
+            }
+        }
+
+    for (int i = blockIdx.x; i < bs; i += gridDim.x)
+        for (int l = threadIdx.x; l < outputdim; l += blockDim.x)
+            output[i][l] += bias[l];
 }
 
 torch::Tensor fkan_cuda_forward(
@@ -31,17 +64,78 @@ torch::Tensor fkan_cuda_forward(
 
     return output;
 }
-
 template <typename scalar_t>
-__global__ void cufkan_backward_kernel(
+__global__ void cufkan_backward_kernel_bias(
         const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> input, 
         torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> d_input,
-        const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeff, 
-        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeff, 
+        const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeffs, 
+        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeffs, 
         const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias, 
         torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> d_bias,
         const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> grad_o) {
-    
+    const int inputdim = input.size(1);
+    const int bs = input.size(0);
+    const int outputdim = grad_o.size(1);
+    const int gridsize = fouriercoeffs.size(3);
+
+    int idx = threadIdx.x + blockDim.x * blockIdx.x; // create typical 1D thread index from built-in variables
+    if (idx < outputdim)
+    {
+        float sum = 0.0f;
+        for (size_t i = 0; i < bs; i++)
+            sum += grad_o[idx][i];  // write a for loop that will cause the thread to iterate down a column, keeeping a running sum, and write the result to sums
+        d_bias[idx] += sum;
+    }
+}
+
+template <typename scalar_t>
+__global__ void cufkan_backward_kernel_coeff(
+        const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> input, 
+        torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> d_input,
+        const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeffs, 
+        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeffs, 
+        const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias, 
+        torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> d_bias,
+        const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> grad_o) {
+    const int inputdim = input.size(1);
+    const int bs = input.size(0);
+    const int outputdim = grad_o.size(1);
+    const int gridsize = fouriercoeffs.size(3);
+
+    int j = threadIdx.x + blockDim.x * blockIdx.x;
+    int l = threadIdx.y + blockDim.y * blockIdx.y;
+    if (j < inputdim && l < outputdim)
+    {
+        for( int i = 0 ; i < bs ; i++)
+        {
+            float xx =  input[i][j];
+            float c0 = cosf(xx); 
+            float s0 = sinf(xx);
+            float ckm = 1.0f;
+            float skm = 0.0f;
+            for (int k = 1; k < gridsize + 1; k++)
+            {
+                //float xx = x[i*s_bs_x + j];
+                float xxb = 0.0;
+                //For better performance We use trig formula to compute ck,sk from ck-1, sk-1, cos(xx),sin(xx)
+                //But this form is better to obtain the bacwkard pass
+                //float c = cos(k*xx);
+                //float s = sin(k*xx);
+                float c = ckm * c0 - skm * s0;
+                float s = skm * c0 + ckm * s0;
+                ckm = c;
+                skm = s;
+                float sb;
+                float cb;
+                d_fouriercoeffs[1][j][l][k - 1] += s * grad_o[i][l];
+                d_fouriercoeffs[0][j][l][k - 1] += c * grad_o[i][l];
+                sb = fouriercoeffs[1][j][l][k-1] * grad_o[i][l];
+                cb = fouriercoeffs[0][j][l][k-1] * grad_o[i][l];
+                xxb = k*c*sb - k*s*cb;
+                d_input[i][j] += xxb;
+            }
+        }
+    }
 }
 
 std::vector<torch::Tensor> fkan_cuda_backward(
@@ -58,11 +152,29 @@ std::vector<torch::Tensor> fkan_cuda_backward(
     });
     torch::Tensor d_bias = torch::zeros({bias.size(0)});
 
-    const int threads = 1024;
-    const dim3 blocks((1000 + threads - 1) / threads, threads);
+    const int n_threads_bias = 1024;
+    const dim3 n_blocks_bias((grad_o.size(1) + n_threads_bias - 1) / n_threads_bias);
 
-    AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_backward_cuda", ([&] {
-        cufkan_backward_kernel<scalar_t><<<blocks, threads>>>(
+    AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_backward_kernel_bias", ([&] {
+        cufkan_backward_kernel_bias<scalar_t><<<n_blocks_bias, n_threads_bias>>>(
+            input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
+            d_input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
+            fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+            d_fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
+            bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
+            d_bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
+            grad_o.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>());
+    }));
+
+    const dim3 n_threads_coeff(32, 32);
+    const dim3 n_blocks_coeff(
+        (input.size(1) + n_threads_coeff.x - 1) / n_threads_coeff.x,
+        (grad_o.size(1) + n_threads_coeff.y - 1) / n_threads_coeff.y
+    );
+    
+
+    AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_backward_kernel_coeff", ([&] {
+        cufkan_backward_kernel_coeff<scalar_t><<<n_blocks_coeff, n_threads_coeff>>>(
             input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
             d_input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
             fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),

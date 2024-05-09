@@ -8,7 +8,7 @@ setup(
             'cuFKAN.cpp',
             'cuFKAN-kernel.cu',
         ]),
-        CppExtension('cuFKAN_kernel', ['FKAN.cpp'])
+        CppExtension('cuFKAN_kernel_cpp', ['FKAN.cpp'])
     ],
     cmdclass={
         'build_ext': BuildExtension

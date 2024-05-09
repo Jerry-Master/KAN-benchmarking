@@ -92,7 +92,11 @@ def main():
         seed=0
     )
     loss_fn = lambda x, y: torch.mean((x - y) ** 2)
+    print('Checking CPU')
     check(dataset, loss_fn, 100, inp_size, 1000, 'cpu')
+    print()
+    print('Checking GPU')
+    check(dataset, loss_fn, 100, inp_size, 1000, 'cuda')
 
 
 if __name__=='__main__':

@@ -49,6 +49,6 @@ std::vector<torch::Tensor> fkan_backward(
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
-    m.def("forward_gpu", &fkan_forward, "FKAN forward (CUDA)");
-    m.def("backward_gpu", &fkan_backward, "FKAN backward (CUDA)");
+    m.def("forward", &fkan_forward, "FKAN forward (CUDA)");
+    m.def("backward", &fkan_backward, "FKAN backward (CUDA)");
 }

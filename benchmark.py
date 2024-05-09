@@ -222,7 +222,7 @@ def main():
         # Installation of this layer is more cumbersome
         # Therefore the imports are here so that they are not needed for the other methods
         try:
-            from cuFKAN.FKAN import FKANLayer
+            from cuFKAN import FKANLayer
             class FKAN(nn.Module):
                 def __init__(self, layers: Tuple[int, int, int], gridsize: int, device: str):
                     super().__init__()
