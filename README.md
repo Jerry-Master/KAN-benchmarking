@@ -30,16 +30,18 @@ An example of the output is in the times-*.txt files where BS means batch size, 
 ```
                      |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
 ----------------------------------------------------------------------------------------------------------------------------------
-effkan-cpu           |     34.72 ms  |     42.18 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-effkan-gpu           |      3.72 ms  |      3.92 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
-fourierkan-cpu       |    761.69 ms  |    933.60 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fourierkan-gpu       |     17.76 ms  |     14.25 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
-fusedfourierkan-cpu  |    890.42 ms  |   1597.98 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fusedfourierkan-gpu  |     30.16 ms  |     82.36 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
-chebykan-cpu         |     19.48 ms  |     29.12 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-chebykan-gpu         |      5.25 ms  |      7.10 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
-mlp-cpu              |      5.53 ms  |     10.23 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
-mlp-gpu              |      0.44 ms  |      0.98 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
+effkan-cpu           |     33.31 ms  |     43.63 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+effkan-gpu           |      4.15 ms  |      3.69 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
+fourierkan-cpu       |    798.43 ms  |    929.11 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fourierkan-gpu       |     19.20 ms  |     14.80 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
+fusedfourierkan-cpu  |    914.66 ms  |   1646.11 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fusedfourierkan-gpu  |     30.14 ms  |     84.01 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+cufkan-cpu           |   1454.64 ms  |   3807.97 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+cufkan-gpu           |      6.24 ms  |     50.71 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+chebykan-cpu         |     22.16 ms  |     26.90 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+chebykan-gpu         |      5.89 ms  |      8.03 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
+mlp-cpu              |      6.60 ms  |     10.56 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
+mlp-gpu              |      0.45 ms  |      1.06 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
 ----------------------------------------------------------------------------------------------------------------------------------
 pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
 pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
