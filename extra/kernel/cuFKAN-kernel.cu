@@ -26,10 +26,6 @@ __global__ void cufkan_forward_kernel(
                 float skm = 0.0f;
                 for (int k = 1; k < gridsize + 1; k++)
                 {
-                    //For better performance We use trig formula to compute ck,sk from ck-1, sk-1, cos(xx),sin(xx)
-                    //But this form is better to obtain the bacwkard pass
-                    //float c = cos(k*xx); 
-                    //float s = sin(k*xx);
                     float c = ckm * c0 - skm * s0;
                     float s = skm * c0 + ckm * s0;
                     ckm = c;
@@ -49,13 +45,18 @@ torch::Tensor fkan_cuda_forward(
         torch::Tensor input,
         torch::Tensor fouriercoeffs,
         torch::Tensor bias) {
-    torch::Tensor output = torch::zeros({input.size(0), fouriercoeffs.size(2)});
+    const int batch_size = input.size(0);
+    auto options = torch::TensorOptions()
+        .dtype(input.dtype())
+        .layout(input.layout())
+        .device(input.device().type(), input.device().index());
+    torch::Tensor output = torch::zeros({batch_size, fouriercoeffs.size(2)}, options);
 
-    const int threads = 1024;
-    const dim3 blocks((1000 + threads - 1) / threads, threads);
+    const int n_threads = 32;
+    const dim3 n_blocks(min(batch_size, 1024));
 
     AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_forward_cuda", ([&] {
-        cufkan_forward_kernel<scalar_t><<<blocks, threads>>>(
+        cufkan_forward_kernel<scalar_t><<<n_blocks, n_threads>>>(
             input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
             fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
             bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
@@ -65,25 +66,18 @@ torch::Tensor fkan_cuda_forward(
     return output;
 }
 template <typename scalar_t>
-__global__ void cufkan_backward_kernel_bias(
-        const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> input, 
-        torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> d_input,
-        const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeffs, 
-        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeffs, 
-        const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias, 
+__global__ void cufkan_backward_kernel_bias( 
         torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> d_bias,
         const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> grad_o) {
-    const int inputdim = input.size(1);
-    const int bs = input.size(0);
+    const int bs = grad_o.size(0);
     const int outputdim = grad_o.size(1);
-    const int gridsize = fouriercoeffs.size(3);
 
     int idx = threadIdx.x + blockDim.x * blockIdx.x; // create typical 1D thread index from built-in variables
     if (idx < outputdim)
     {
         float sum = 0.0f;
         for (size_t i = 0; i < bs; i++)
-            sum += grad_o[idx][i];  // write a for loop that will cause the thread to iterate down a column, keeeping a running sum, and write the result to sums
+            sum += grad_o[i][idx];  // write a for loop that will cause the thread to iterate down a column, keeeping a running sum, and write the result to sums
         d_bias[idx] += sum;
     }
 }
@@ -93,9 +87,7 @@ __global__ void cufkan_backward_kernel_coeff(
         const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> input, 
         torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> d_input,
         const torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> fouriercoeffs, 
-        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeffs, 
-        const torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> bias, 
-        torch::PackedTensorAccessor32<scalar_t, 1, torch::RestrictPtrTraits> d_bias,
+        torch::PackedTensorAccessor32<scalar_t, 4, torch::RestrictPtrTraits> d_fouriercoeffs,
         const torch::PackedTensorAccessor32<scalar_t, 2, torch::RestrictPtrTraits> grad_o) {
     const int inputdim = input.size(1);
     const int bs = input.size(0);
@@ -108,19 +100,14 @@ __global__ void cufkan_backward_kernel_coeff(
     {
         for( int i = 0 ; i < bs ; i++)
         {
-            float xx =  input[i][j];
+            float xx = input[i][j];
             float c0 = cosf(xx); 
             float s0 = sinf(xx);
             float ckm = 1.0f;
             float skm = 0.0f;
             for (int k = 1; k < gridsize + 1; k++)
             {
-                //float xx = x[i*s_bs_x + j];
                 float xxb = 0.0;
-                //For better performance We use trig formula to compute ck,sk from ck-1, sk-1, cos(xx),sin(xx)
-                //But this form is better to obtain the bacwkard pass
-                //float c = cos(k*xx);
-                //float s = sin(k*xx);
                 float c = ckm * c0 - skm * s0;
                 float s = skm * c0 + ckm * s0;
                 ckm = c;
@@ -143,25 +130,24 @@ std::vector<torch::Tensor> fkan_cuda_backward(
         torch::Tensor input,
         torch::Tensor fouriercoeffs,
         torch::Tensor bias) {
-    torch::Tensor d_input = torch::zeros({input.size(0), input.size(1)});
+    auto options = torch::TensorOptions()
+        .dtype(input.dtype())
+        .layout(input.layout())
+        .device(input.device().type(), input.device().index());
+    torch::Tensor d_input = torch::zeros({input.size(0), input.size(1)}, options);
     torch::Tensor d_fouriercoeffs = torch::zeros({
         fouriercoeffs.size(0), 
         fouriercoeffs.size(1), 
         fouriercoeffs.size(2), 
         fouriercoeffs.size(3)
-    });
-    torch::Tensor d_bias = torch::zeros({bias.size(0)});
+    }, options);
+    torch::Tensor d_bias = torch::zeros({bias.size(0)}, options);
 
     const int n_threads_bias = 1024;
-    const dim3 n_blocks_bias((grad_o.size(1) + n_threads_bias - 1) / n_threads_bias);
+    const int n_blocks_bias = (grad_o.size(1) + n_threads_bias - 1) / n_threads_bias;
 
     AT_DISPATCH_FLOATING_TYPES(input.type(), "cufkan_backward_kernel_bias", ([&] {
         cufkan_backward_kernel_bias<scalar_t><<<n_blocks_bias, n_threads_bias>>>(
-            input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
-            d_input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
-            fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-            d_fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-            bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
             d_bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
             grad_o.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>());
     }));
@@ -179,8 +165,6 @@ std::vector<torch::Tensor> fkan_cuda_backward(
             d_input.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>(),
             fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
             d_fouriercoeffs.packed_accessor32<scalar_t, 4, torch::RestrictPtrTraits>(),
-            bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
-            d_bias.packed_accessor32<scalar_t, 1, torch::RestrictPtrTraits>(),
             grad_o.packed_accessor32<scalar_t, 2, torch::RestrictPtrTraits>());
     }));
 

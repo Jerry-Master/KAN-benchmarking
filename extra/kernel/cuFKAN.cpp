@@ -27,7 +27,7 @@ torch::Tensor fkan_forward(
     CHECK_INPUT(input);
     CHECK_INPUT(fouriercoeffs);
     CHECK_INPUT(bias);
-
+    
     return fkan_cuda_forward(input, fouriercoeffs,  bias);
 }
 

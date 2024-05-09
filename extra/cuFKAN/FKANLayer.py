@@ -22,8 +22,8 @@ class FKANFunction(torch.autograd.Function):
 class cuFKANFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, fouriercoeffs, bias):
-        output = cuFKAN_kernel.forward(input, fouriercoeffs, bias)
-        ctx.save_for_backward(input, fouriercoeffs, bias)
+        output = cuFKAN_kernel.forward(input.contiguous(), fouriercoeffs.contiguous(), bias.contiguous())
+        ctx.save_for_backward(input.contiguous(), fouriercoeffs.contiguous(), bias.contiguous())
         return output
 
     @staticmethod
