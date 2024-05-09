@@ -8,6 +8,7 @@ from kan import create_dataset
 from kan import KAN as pyKAN
 from efficient_kan import KAN as effKAN
 from FourierKAN.fftKAN import NaiveFourierKANLayer
+from ChebyKAN.ChebyKANLayer import ChebyKANLayer
 
 
 class MLP(nn.Module):
@@ -29,6 +30,18 @@ class FourierKAN(nn.Module):
         super().__init__()
         self.layer1 = NaiveFourierKANLayer(layers[0], layers[1], gridsize=gridsize).to(device)
         self.layer2 = NaiveFourierKANLayer(layers[1], layers[2], gridsize=gridsize).to(device)
+
+    def forward(self, x: torch.Tensor):
+        x = self.layer1(x)
+        x = self.layer2(x)
+        return x
+    
+
+class ChebyKAN(nn.Module):
+    def __init__(self, layers: Tuple[int, int, int], device: str):
+        super().__init__()
+        self.layer1 = ChebyKANLayer(layers[0], layers[1], degree=9).to(device)
+        self.layer2 = ChebyKANLayer(layers[1], layers[2], degree=9).to(device)
 
     def forward(self, x: torch.Tensor):
         x = self.layer1(x)
@@ -125,7 +138,7 @@ def count_params(model: nn.Module) -> Tuple[int, int]:
 def _create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-path', default='times.txt', type=str)
-    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'mlp', 'all'], type=str)
+    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'mlp', 'all', 'fusedfourierkan', 'chebykan'], type=str)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--inp-size', type=int, default=2, help='The dimension of the input variables.')
     parser.add_argument('--hid-size', type=int, default=50, help='The dimension of the hidden layer.')
@@ -179,6 +192,40 @@ def main():
         model.to('cuda')
         res['fourierkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['fourierkan-gpu']['params'], res['fourierkan-gpu']['train_params'] = count_params(model)
+    if args.method == 'fusedfourierkan' or args.method == 'all':
+        # Installation of this layer is more cumbersome
+        # Therefore the imports are here so that they are not needed for the other methods
+        try:
+            from FusedFourierKAN.FusedFourierKANLayer import FusedFourierKANLayer
+            class FusedFourierKAN(nn.Module):
+                def __init__(self, layers: Tuple[int, int, int], gridsize: int, device: str):
+                    super().__init__()
+                    torch.manual_seed(42)
+                    self.layer1 = FusedFourierKANLayer(layers[0], layers[1], gridsize=gridsize).to(device)
+                    self.layer2 = FusedFourierKANLayer(layers[1], layers[2], gridsize=gridsize).to(device)
+
+                def forward(self, x: torch.Tensor):
+                    x = self.layer1(x)
+                    x = self.layer2(x)
+                    return x
+            model = FusedFourierKAN(layers=[args.inp_size, args.hid_size, 1], gridsize=5, device='cpu')
+            if not args.just_cuda:
+                res['fusedfourierkan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+                res['fusedfourierkan-cpu']['params'], res['fusedfourierkan-cpu']['train_params'] = count_params(model)
+            model.to('cuda')
+            res['fusedfourierkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+            res['fusedfourierkan-gpu']['params'], res['fusedfourierkan-gpu']['train_params'] = count_params(model)
+        except Exception as e:
+            print(e)
+            print('FusedFourierKAN is not properly installed.')
+    if args.method == 'chebykan' or args.method == 'all':
+        model = ChebyKAN(layers=[args.inp_size, args.hid_size, 1], device='cpu')
+        if not args.just_cuda:
+            res['chebykan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['chebykan-cpu']['params'], res['chebykan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['chebykan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['chebykan-gpu']['params'], res['chebykan-gpu']['train_params'] = count_params(model)
     if args.method == 'mlp' or args.method == 'all':
         model = MLP(layers=[args.inp_size, args.hid_size * 10, 1], device='cpu')
         if not args.just_cuda:
@@ -187,30 +234,6 @@ def main():
         model.to('cuda')
         res['mlp-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['mlp-gpu']['params'], res['mlp-gpu']['train_params'] = count_params(model)
-    if args.method == 'fusedfourierkan' or args.method == 'all' or args.method == 'comparefused':
-        # Installation of this layer is more cumbersome
-        # Therefore the imports are here so that they are not needed for the other methods
-        from FusedFourierKAN.FusedFourierKANLayer import FusedFourierKANLayer
-        class FusedFourierKAN(nn.Module):
-            def __init__(self, layers: Tuple[int, int, int], gridsize: int, device: str):
-                super().__init__()
-                torch.manual_seed(42)
-                self.layer1 = FusedFourierKANLayer(layers[0], layers[1], gridsize=gridsize).to(device)
-                self.layer2 = FusedFourierKANLayer(layers[1], layers[2], gridsize=gridsize).to(device)
-
-            def forward(self, x: torch.Tensor):
-                x = self.layer1(x)
-                x = self.layer2(x)
-                return x
-        model = FusedFourierKAN(layers=[args.inp_size, args.hid_size, 1], gridsize=5, device='cpu')
-        if not args.just_cuda:
-            res['fusedfourierkan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
-            res['fusedfourierkan-cpu']['params'], res['fusedfourierkan-cpu']['train_params'] = count_params(model)
-        model.to('cuda')
-        res['fusedfourierkan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
-        res['fusedfourierkan-gpu']['params'], res['fusedfourierkan-gpu']['train_params'] = count_params(model)
-    
-
     save_results(res, args.output_path)
 
 if __name__=='__main__':

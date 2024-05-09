@@ -13,7 +13,7 @@ usage: benchmark.py [-h] [--output-path OUTPUT_PATH] [--method {pykan,efficientk
 options:
   -h, --help            show this help message and exit
   --output-path OUTPUT_PATH
-  --method {pykan,efficientkan,fourierkan,mlp,all}
+  --method {pykan,efficientkan,fourierkan,fusedfourierkan,chebykan,mlp,all}
   --batch-size BATCH_SIZE
   --inp-size INP_SIZE   The dimension of the input variables.
   --hid-size HID_SIZE   The dimension of the hidden layer.
@@ -25,20 +25,24 @@ The benchmark is simply a network with 1 hidden layer where you can vary the num
 
 The MLP uses 10 times the hidden size in order for the number of parameters to be roughly the same and therefore comparable. And the original implementation is not included in the 'all' comparison because it takes orders of magnitude more time to execute.
 
-An example of the output is in the times-*.txt files. Also provided below (executed on a NVIDIA A5000 and an Intel i0-10900X):
+An example of the output is in the times-*.txt files where BS means batch size, I for input size and H for hidden size. Also provided below (executed on a NVIDIA A5000 and an Intel i9-10900X):
 
 ```
-                |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
+                     |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
 ----------------------------------------------------------------------------------------------------------------------------------
-effkan-cpu      |     33.56 ms  |     43.40 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-effkan-gpu      |      3.28 ms  |      2.89 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
-fourierkan-cpu  |    708.44 ms  |    913.20 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fourierkan-gpu  |     18.04 ms  |     15.03 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
-mlp-cpu         |      6.25 ms  |     10.99 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
-mlp-gpu         |      0.46 ms  |      1.04 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
+effkan-cpu           |     34.72 ms  |     42.18 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+effkan-gpu           |      3.72 ms  |      3.92 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
+fourierkan-cpu       |    761.69 ms  |    933.60 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fourierkan-gpu       |     17.76 ms  |     14.25 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
+fusedfourierkan-cpu  |    890.42 ms  |   1597.98 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fusedfourierkan-gpu  |     30.16 ms  |     82.36 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+chebykan-cpu         |     19.48 ms  |     29.12 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+chebykan-gpu         |      5.25 ms  |      7.10 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
+mlp-cpu              |      5.53 ms  |     10.23 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
+mlp-gpu              |      0.44 ms  |      0.98 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
 ----------------------------------------------------------------------------------------------------------------------------------
-pykan-cpu       |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
-pykan-gpu       |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
+pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
+pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
 ```
 
 I believe there is still room for improvement.
@@ -122,7 +126,7 @@ cd FusedFourierKAN/build
 cmake -DCMAKE_PREFIX_PATH="/absolute/path/to/libtorch" ..
 ```
 
-Once you have configured the project, you can try with `cmake --build . --config Release`. If that does not work, the configuration should have created some Visual Studio solutions. Open those and compile the project there in Release mode. If you get some error about  '/RTC1' and '/O2' not being compatible that is because you are not compiling in Release mode. Once finished, look for the location of the DLL. It should be on `FusedFourierKAN/build/Release/fusedFourierKAN.dll`. Go to `FusedFourierKAN/FusedFourierKAN/ffKANFunction.py` and modify line 10 to be `pluginpath = os.path.join(parent, "../build/Release/fusedFourierKAN.dll")`. 
+Once you have configured the project, you can try with `cmake --build . --config Release`. If that does not work, the configuration should have created some Visual Studio solutions. Open those and compile the project there in Release mode. If you get some error about  '/RTC1' and '/O2' not being compatible that is because you are not compiling in Release mode. Once finished, look for the location of the DLL. It should be on `FusedFourierKAN/build/Release/fusedFourierKAN.dll`. Go to `FusedFourierKAN/FusedFourierKAN/ffKANFunction.py` and modify line 10 to be `pluginpath = os.path.join(parent, "../build/Release/fusedFourierKAN.dll")`. Same with `FusedFourierKAN/FusedFourierKAN/ffKANGPUFunction.py`.
 
 Once you have the dynamic library compiled, either in Linux or Windows, the last step is to install the python library:
 

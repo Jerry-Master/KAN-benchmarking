@@ -10,3 +10,6 @@
 [submodule "FusedFourierKAN"]
 	path = FusedFourierKAN
 	url = https://github.com/GistNoesis/FusedFourierKAN.git
+[submodule "ChebyKAN"]
+	path = ChebyKAN
+	url = https://github.com/SynodicMonth/ChebyKAN.git
