@@ -30,24 +30,24 @@ An example of the output is in the times-*.txt files where BS means batch size, 
 ```
                      |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
 ----------------------------------------------------------------------------------------------------------------------------------
-effkan-cpu           |     33.31 ms  |     43.63 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-effkan-gpu           |      4.15 ms  |      3.69 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
-fourierkan-cpu       |    798.43 ms  |    929.11 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fourierkan-gpu       |     19.20 ms  |     14.80 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
-fusedfourierkan-cpu  |    914.66 ms  |   1646.11 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fusedfourierkan-gpu  |     30.14 ms  |     84.01 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
-cufkan-cpu           |   1454.64 ms  |   3807.97 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-cufkan-gpu           |      6.24 ms  |     50.71 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
-chebykan-cpu         |     22.16 ms  |     26.90 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-chebykan-gpu         |      5.89 ms  |      8.03 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
-mlp-cpu              |      6.60 ms  |     10.56 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
-mlp-gpu              |      0.45 ms  |      1.06 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
+effkan-cpu           |     30.43 ms  |     47.14 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+effkan-gpu           |      5.07 ms  |      3.59 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
+fourierkan-cpu       |    705.42 ms  |    958.38 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fourierkan-gpu       |     18.86 ms  |     15.54 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
+fusedfourierkan-cpu  |    957.23 ms  |   1699.95 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fusedfourierkan-gpu  |     31.33 ms  |     88.24 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+cufkan-cpu           |   1495.96 ms  |   3896.02 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+cufkan-gpu           |      5.95 ms  |     48.82 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+chebykan-cpu         |     21.20 ms  |     12.34 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+chebykan-gpu         |      1.06 ms  |      1.17 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
+mlp-cpu              |      6.39 ms  |     10.30 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
+mlp-gpu              |      0.55 ms  |      1.26 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
 ----------------------------------------------------------------------------------------------------------------------------------
 pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
 pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
 ```
 
-I believe there is still room for improvement.
+~~I believe there is still room for improvement.~~ Well, Chebykan backward is already faster while forward is just twice as slow. We are getting really close to MLP performance.
 
 ## Setup
 ### Automatic
