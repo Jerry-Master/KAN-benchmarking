@@ -47,7 +47,7 @@ pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan
 pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
 ```
 
-~~I believe there is still room for improvement.~~ Well, Chebykan backward is already faster while forward is just twice as slow. We are getting really close to MLP performance.
+~~I believe there is still room for improvement.~~ Well, Chebykan backward is already slightly faster ~~while forward is just twice as slow~~ and forward seems to be faster too based on [this issue](https://github.com/Jerry-Master/KAN-benchmarking/issues/4). We are getting really close to MLP performance.
 
 ## Setup
 ### Automatic
