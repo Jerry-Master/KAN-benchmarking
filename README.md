@@ -13,7 +13,7 @@ usage: benchmark.py [-h] [--output-path OUTPUT_PATH] [--method {pykan,efficientk
 options:
   -h, --help            show this help message and exit
   --output-path OUTPUT_PATH
-  --method {pykan,efficientkan,fourierkan,fusedfourierkan,chebykan,mlp,all}
+  --method {pykan,efficientkan,fourierkan,fusedfourierkan,chebykan,cufkan,fast-kan,faster-kan,rbf-kan,mlp,all}
   --batch-size BATCH_SIZE
   --inp-size INP_SIZE   The dimension of the input variables.
   --hid-size HID_SIZE   The dimension of the hidden layer.
@@ -23,7 +23,7 @@ options:
 
 The benchmark is simply a network with 1 hidden layer where you can vary the number of input and hidden neurons and the output is 1D. This basically covers all the cases you want to profile since any other model is just made of several layers of this form. 
 
-The MLP uses 10 times the hidden size in order for the number of parameters to be roughly the same and therefore comparable. And the original implementation is not included in the 'all' comparison because it takes orders of magnitude more time to execute.
+The MLP uses 10 times the hidden size in order for the number of parameters to be roughly the same and therefore comparable. And the original implementation is not included in the 'all' comparison because it takes orders of magnitude more time to execute. The fast-kan, faster-kan and rbf-kan algorithms have the default `num_grids` value changed to also have a comparable number of parameters.
 
 An example of the output is in the times-*.txt files where BS means batch size, I for input size and H for hidden size. Also provided below (executed on a NVIDIA A5000 and an Intel i9-10900X):
 
@@ -54,7 +54,7 @@ pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan
 pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
 ```
 
-~~I believe there is still room for improvement.~~ Well, Chebykan backward is already slightly faster ~~while forward is just twice as slow~~ and forward seems to be faster too based on [this issue](https://github.com/Jerry-Master/KAN-benchmarking/issues/4). We are getting really close to MLP performance.
+We are getting really close to MLP performance.
 
 ## Setup
 ### Automatic
