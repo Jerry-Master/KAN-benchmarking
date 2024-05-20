@@ -78,6 +78,18 @@ pip install . || (
     exit 1
 )
 
+# Change directory to fast-kan
+cd ../fast-kan || (
+    echo "Error changing directory to fast-kan"
+    exit 1
+)
+
+# Install fast-kan
+pip install -e . || (
+    echo "Error installing fast-kan"
+    exit 1
+)
+
 # Change directory up
 cd .. || {
     echo "Error changing directory up"

@@ -9,6 +9,9 @@ from kan import KAN as pyKAN
 from efficient_kan import KAN as effKAN
 from FourierKAN.fftKAN import NaiveFourierKANLayer
 from ChebyKAN.ChebyKANLayer import ChebyKANLayer
+from fastkan import FastKAN
+from faster_kan.fasterkan import FasterKAN
+from rbf_kan.RBF_KAN import RBFKAN
 
 
 class MLP(nn.Module):
@@ -138,7 +141,7 @@ def count_params(model: nn.Module) -> Tuple[int, int]:
 def _create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-path', default='times.txt', type=str)
-    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'fusedfourierkan', 'chebykan', 'cufkan', 'mlp', 'all'], type=str)
+    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'fusedfourierkan', 'chebykan', 'cufkan', 'fast-kan', 'faster-kan', 'rbf-kan', 'mlp', 'all'], type=str)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--inp-size', type=int, default=2, help='The dimension of the input variables.')
     parser.add_argument('--hid-size', type=int, default=50, help='The dimension of the hidden layer.')
@@ -260,6 +263,33 @@ def main():
         model.to('cuda')
         res['mlp-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['mlp-gpu']['params'], res['mlp-gpu']['train_params'] = count_params(model)
+    if args.method == 'fast-kan' or args.method == 'all':
+        model = FastKAN(layers_hidden=[args.inp_size, args.hid_size, 1], num_grids=9)
+        model.to('cpu')
+        if not args.just_cuda:
+            res['fast-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['fast-kan-cpu']['params'], res['fast-kan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['fast-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['fast-kan-gpu']['params'], res['fast-kan-gpu']['train_params'] = count_params(model)
+    if args.method == 'faster-kan' or args.method == 'all':
+        model = FasterKAN(layers_hidden=[args.inp_size, args.hid_size, 1], num_grids=10)
+        model.to('cpu')
+        if not args.just_cuda:
+            res['faster-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['faster-kan-cpu']['params'], res['faster-kan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['faster-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['faster-kan-gpu']['params'], res['faster-kan-gpu']['train_params'] = count_params(model)
+    if args.method == 'rbf-kan' or args.method == 'all':
+        model = RBFKAN(layers_hidden=[args.inp_size, args.hid_size, 1], num_grids=9)
+        model.to('cpu')
+        if not args.just_cuda:
+            res['rbf-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['rbf-kan-cpu']['params'], res['rbf-kan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['rbf-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['rbf-kan-gpu']['params'], res['rbf-kan-gpu']['train_params'] = count_params(model)
     save_results(res, args.output_path)
 
 if __name__=='__main__':

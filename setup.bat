@@ -103,6 +103,22 @@ IF ERRORLEVEL 1 (
     exit /b 1
 )
 
+REM Change directory to fast-kan
+cd ..\fast-kan
+IF ERRORLEVEL 1 (
+    echo Error changing directory to fast-kan
+    pause
+    exit /b 1
+)
+
+REM Install fast-kan
+pip install -e .
+IF ERRORLEVEL 1 (
+    echo Error installing fast-kan
+    pause
+    exit /b 1
+)
+
 REM Change directory up
 cd ..
 IF ERRORLEVEL 1 (

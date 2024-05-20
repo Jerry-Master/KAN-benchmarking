@@ -13,3 +13,12 @@
 [submodule "ChebyKAN"]
 	path = ChebyKAN
 	url = https://github.com/SynodicMonth/ChebyKAN.git
+[submodule "fast-kan"]
+	path = fast-kan
+	url = https://github.com/ZiyaoLi/fast-kan.git
+[submodule "faster_kan"]
+	path = faster_kan
+	url = https://github.com/AthanasiosDelis/faster-kan.git
+[submodule "rbf_kan"]
+	path = rbf_kan
+	url = https://github.com/Sid2690/RBF-KAN.git

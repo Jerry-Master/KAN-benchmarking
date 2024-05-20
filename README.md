@@ -1,6 +1,6 @@
 # Kolmogorov Arnold Efficiency Benchmark
 
-Given the current popularity of the Kolmogorov Arnold Networks and its critiques about efficiency, here is a repository that measures the current state of the efficiency of the implementations. It is true that the original implementation was painfully slow. But optimizations have been made to increase the efficiency up to several orders of magnitude.
+Given the current popularity of the Kolmogorov Arnold Networks and its critiques about efficiency, here is a repository that measures the current state of the efficiency of the implementations. It is true that the original implementation was painfully slow. But optimizations have been made to increase the efficiency up to several orders of magnitude. Current best implementation in terms of efficiency seems to be [ChebyKAN](https://github.com/SynodicMonth/ChebyKAN/tree/5f7efdd18e749bcc99481bd87dc90bdeafb920d8). And it seems there is still room for improvement [in that kernel](https://github.com/Jerry-Master/KAN-benchmarking/issues/4#issue-2297007801).
 
 ## Usage
 
@@ -30,18 +30,25 @@ An example of the output is in the times-*.txt files where BS means batch size, 
 ```
                      |      forward  |     backward  |      forward  |     backward  |   num params  |  num trainable params
 ----------------------------------------------------------------------------------------------------------------------------------
-effkan-cpu           |     30.43 ms  |     47.14 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-effkan-gpu           |      5.07 ms  |      3.59 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
-fourierkan-cpu       |    705.42 ms  |    958.38 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fourierkan-gpu       |     18.86 ms  |     15.54 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
-fusedfourierkan-cpu  |    957.23 ms  |   1699.95 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-fusedfourierkan-gpu  |     31.33 ms  |     88.24 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
-cufkan-cpu           |   1495.96 ms  |   3896.02 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
-cufkan-gpu           |      5.95 ms  |     48.82 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
-chebykan-cpu         |     21.20 ms  |     12.34 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
-chebykan-gpu         |      1.06 ms  |      1.17 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
-mlp-cpu              |      6.39 ms  |     10.30 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
-mlp-gpu              |      0.55 ms  |      1.26 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
+effkan-cpu           |     31.98 ms  |     44.49 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+effkan-gpu           |      4.76 ms  |      4.54 ms  |      0.13 GB  |      0.19 GB  |     10010000  |              10010000
+fourierkan-cpu       |    727.35 ms  |    936.78 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fourierkan-gpu       |     17.93 ms  |     14.40 ms  |      1.96 GB  |      2.01 GB  |     10011001  |              10011001
+fusedfourierkan-cpu  |    908.43 ms  |   1637.14 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+fusedfourierkan-gpu  |     30.30 ms  |     84.61 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+cufkan-cpu           |   1467.37 ms  |   3767.40 ms  |       nan GB  |       nan GB  |     10011001  |              10011001
+cufkan-gpu           |      5.95 ms  |     49.74 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
+chebykan-cpu         |     20.29 ms  |     12.38 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
+chebykan-gpu         |      1.03 ms  |      1.21 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
+fast-kan-cpu         |      9.96 ms  |     17.06 ms  |       nan GB  |       nan GB  |     10015019  |              10015001
+fast-kan-gpu         |      1.44 ms  |      2.13 ms  |      0.11 GB  |      0.14 GB  |     10015019  |              10015001
+faster-kan-cpu       |     10.58 ms  |     15.42 ms  |       nan GB  |       nan GB  |     10014022  |              10014000
+faster-kan-gpu       |      1.20 ms  |      2.01 ms  |      0.12 GB  |      0.14 GB  |     10014022  |              10014000
+rbf-kan-cpu          |     12.59 ms  |     12.07 ms  |       nan GB  |       nan GB  |     10011019  |              10011001
+rbf-kan-gpu          |      1.12 ms  |      2.08 ms  |      0.11 GB  |      0.13 GB  |     10011019  |              10011001
+----------------------------------------------------------------------------------------------------------------------------------
+mlp-cpu              |      9.77 ms  |      7.27 ms  |       nan GB  |       nan GB  |     10020001  |              10020001
+mlp-gpu              |      0.49 ms  |      1.07 ms  |      0.10 GB  |      0.13 GB  |     10020001  |              10020001
 ----------------------------------------------------------------------------------------------------------------------------------
 pykan-cpu            |     15.59 ms  |     17.53 ms  |       nan GB  |       nan GB  |         2431  |                  1551
 pykan-gpu            |     50.56 ms  |     93.93 ms  |      0.02 GB  |      0.02 GB  |         2431  |                  1551
@@ -88,6 +95,8 @@ pip install matplotlib==3.6.2 numpy==1.24.4 scikit_learn==1.1.3 setuptools==65.5
 cd pykan
 pip install -e .
 cd ../efficient-kan
+pip install -e .
+cd ../fast-kan
 pip install -e .
 ```
 
