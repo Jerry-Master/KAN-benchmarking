@@ -12,6 +12,7 @@ from ChebyKAN.ChebyKANLayer import ChebyKANLayer
 from fastkan import FastKAN
 from faster_kan.fasterkan import FasterKAN
 from rbf_kan.RBF_KAN import RBFKAN
+from wav_kan.KAN import KAN as WavKAN
 
 
 class MLP(nn.Module):
@@ -141,7 +142,13 @@ def count_params(model: nn.Module) -> Tuple[int, int]:
 def _create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--output-path', default='times.txt', type=str)
-    parser.add_argument('--method', choices=['pykan', 'efficientkan', 'fourierkan', 'fusedfourierkan', 'chebykan', 'cufkan', 'fast-kan', 'faster-kan', 'rbf-kan', 'mlp', 'all'], type=str)
+    parser.add_argument('--method', choices=[
+            'pykan', 'efficientkan', 'fourierkan',
+            'fusedfourierkan', 'chebykan', 'cufkan',
+            'fast-kan', 'faster-kan', 'rbf-kan',
+            'wav-kan', 'mlp', 'all'
+        ],
+        type=str)
     parser.add_argument('--batch-size', type=int, default=32)
     parser.add_argument('--inp-size', type=int, default=2, help='The dimension of the input variables.')
     parser.add_argument('--hid-size', type=int, default=50, help='The dimension of the hidden layer.')
@@ -290,6 +297,15 @@ def main():
         model.to('cuda')
         res['rbf-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['rbf-kan-gpu']['params'], res['rbf-kan-gpu']['train_params'] = count_params(model)
+    if args.method == 'wav-kan' or args.method == 'all':
+        model = WavKAN(layers_hidden=[args.inp_size, 2 * args.hid_size, 1])
+        model.to('cpu')
+        if not args.just_cuda:
+            res['wav-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['wav-kan-cpu']['params'], res['wav-kan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['wav-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['wav-kan-gpu']['params'], res['wav-kan-gpu']['train_params'] = count_params(model)
     save_results(res, args.output_path)
 
 if __name__=='__main__':

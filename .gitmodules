@@ -22,3 +22,6 @@
 [submodule "rbf_kan"]
 	path = rbf_kan
 	url = https://github.com/Sid2690/RBF-KAN.git
+[submodule "wav_kan"]
+	path = wav_kan
+	url = https://github.com/zavareh1/Wav-KAN.git
