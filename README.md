@@ -40,6 +40,10 @@ cufkan-cpu           |   1467.37 ms  |   3767.40 ms  |       nan GB  |       nan
 cufkan-gpu           |      5.95 ms  |     49.74 ms  |      0.09 GB  |      0.13 GB  |     10011001  |              10011001
 chebykan-cpu         |     20.29 ms  |     12.38 ms  |       nan GB  |       nan GB  |     10010000  |              10010000
 chebykan-gpu         |      1.03 ms  |      1.21 ms  |      0.14 GB  |      0.13 GB  |     10010000  |              10010000
+sine-kan-cpu         |      5.55 ms  |     40.94 ms  |       nan GB  |       nan GB  |     10011021  |              10011021
+sine-kan-gpu         |      0.87 ms  |      1.85 ms  |      0.11 GB  |      0.14 GB  |     10011021  |              10011021
+relu-kan-cpu         |   3662.65 ms  |   5816.90 ms  |       nan GB  |       nan GB  |     10051001  |              10051001
+relu-kan-gpu         |      3.22 ms  |     55.12 ms  |      0.15 GB  |      0.15 GB  |     10051001  |              10051001
 fast-kan-cpu         |      9.96 ms  |     17.06 ms  |       nan GB  |       nan GB  |     10015019  |              10015001
 fast-kan-gpu         |      1.44 ms  |      2.13 ms  |      0.11 GB  |      0.14 GB  |     10015019  |              10015001
 faster-kan-cpu       |     10.58 ms  |     15.42 ms  |       nan GB  |       nan GB  |     10014022  |              10014000

@@ -25,3 +25,9 @@
 [submodule "wav_kan"]
 	path = wav_kan
 	url = https://github.com/zavareh1/Wav-KAN.git
+[submodule "SineKAN"]
+	path = SineKAN
+	url = https://github.com/ereinha/SineKAN.git
+[submodule "relu_kan"]
+	path = relu_kan
+	url = https://github.com/quiqi/relu_kan.git

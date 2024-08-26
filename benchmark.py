@@ -13,6 +13,8 @@ from fastkan import FastKAN
 from faster_kan.fasterkan import FasterKAN
 from rbf_kan.RBF_KAN import RBFKAN
 from wav_kan.KAN import KAN as WavKAN
+from SineKAN.sine_kan import SineKAN
+from relu_kan.torch_relu_kan import ReLUKAN
 
 
 class MLP(nn.Module):
@@ -146,6 +148,7 @@ def _create_parser():
             'pykan', 'efficientkan', 'fourierkan',
             'fusedfourierkan', 'chebykan', 'cufkan',
             'fast-kan', 'faster-kan', 'rbf-kan',
+            'sine-kan', 'relu-kan',
             'wav-kan', 'mlp', 'all'
         ],
         type=str)
@@ -262,6 +265,25 @@ def main():
         model.to('cuda')
         res['chebykan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
         res['chebykan-gpu']['params'], res['chebykan-gpu']['train_params'] = count_params(model)
+    if args.method == 'sine-kan' or args.method == 'all':
+        if not args.just_cuda:
+            model = SineKAN(layers_hidden=[args.inp_size, args.hid_size, 1], grid_size=10, device='cpu')
+            model.to('cpu')
+            res['sine-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['sine-kan-cpu']['params'], res['sine-kan-cpu']['train_params'] = count_params(model)
+        model = SineKAN(layers_hidden=[args.inp_size, args.hid_size, 1], grid_size=10, device='cuda')
+        model.to('cuda')
+        res['sine-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['sine-kan-gpu']['params'], res['sine-kan-gpu']['train_params'] = count_params(model)
+    if args.method == 'relu-kan' or args.method == 'all':
+        model = ReLUKAN([args.inp_size, args.hid_size, 1], 5, 5)
+        if not args.just_cuda:
+            model.to('cpu')
+            res['relu-kan-cpu'] = benchmark(dataset, 'cpu', args.batch_size, loss_fn, model, args.reps)
+            res['relu-kan-cpu']['params'], res['relu-kan-cpu']['train_params'] = count_params(model)
+        model.to('cuda')
+        res['relu-kan-gpu'] = benchmark(dataset, 'cuda', args.batch_size, loss_fn, model, args.reps)
+        res['relu-kan-gpu']['params'], res['relu-kan-gpu']['train_params'] = count_params(model)
     if args.method == 'mlp' or args.method == 'all':
         model = MLP(layers=[args.inp_size, args.hid_size * 10, 1], device='cpu')
         if not args.just_cuda:
